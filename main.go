@@ -2,47 +2,32 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"sync"
+	"time"
 )
 
-func sumPart(numbers []int, start, end int, resultChan chan int, wg *sync.WaitGroup) {
-	defer wg.Done() // Menandai bahwa goroutine ini selesai
-	sum := 0
-	for i := start; i < end; i++ {
-		sum += numbers[i] // Menjumlahkan bagian dari array ini
-	}
-	resultChan <- sum // Kirim hasil ke channel
+// Fungsi yang dijalankan oleh setiap goroutine yang mensimulasikan orang bangun
+func wakeUp(person string, sleepTime time.Duration, wg *sync.WaitGroup) {
+	defer wg.Done()
+	time.Sleep(sleepTime)
+	fmt.Println(person, "has woken up!")
+	fmt.Println(person, "has slept for", sleepTime)
 }
 
 func main() {
-	numbers := make([]int, 1000)
-	for i := 0; i < 1000; i++ {
-		numbers[i] = i + 2 // Mengisi array dengan angka dari 2 sampai 1001
-	}
-
-	totalGoroutines := 7
-	partSize := len(numbers) / totalGoroutines
-	resultChan := make(chan int, totalGoroutines)
+	rand.Seed(time.Now().UnixNano()) // Menetapkan seed untuk nilai acak
 	var wg sync.WaitGroup
+	people := []string{"Alice", "Bob", "Charlie", "Diana", "Eve"}
+	start := time.Now()
 
-	for i := 0; i < totalGoroutines; i++ {
-		start := i * partSize
-		end := start + partSize
-		if i == totalGoroutines-1 {
-			end = len(numbers) // Mengatasi sisa, memberikan ke goroutine terakhir
-		}
-		wg.Add(1)
-		go sumPart(numbers, start, end, resultChan, &wg) // Memulai goroutine
+	for _, person := range people {
+		wg.Add(1) // Menambahkan counter WaitGroup
+		// Memulai goroutine dengan waktu tidur acak sebelum bangun, waktu tidur dari 1 sampai 10 detik
+		go wakeUp(person, time.Duration(rand.Intn(9)+1)*time.Second, &wg)
 	}
 
-	wg.Wait()
-	close(resultChan)
-
-	totalSum := 0
-	for result := range resultChan {
-		println("Penjumlahan:", result)
-		totalSum += result // Menjumlahkan semua hasil dari channel
-	}
-
-	fmt.Println("The total sum is:", totalSum) // Menampilkan jumlah total
+	wg.Wait() // Menunggu semua goroutine selesai
+	fmt.Println("Everyone has woken up!")
+	fmt.Println("Total time spent sleeping:", time.Since(start))
 }
